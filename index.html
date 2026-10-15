@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Tarifas</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 0; }
+        body { background-color: #1e293b; color: #f8fafc; padding: 15px; display: flex; justify-content: center; }
+        .app-container { width: 100%; max-width: 450px; background-color: #0f172a; border-radius: 16px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .logo-container { text-align: center; margin-bottom: 15px; }
+        .logo-container img { max-height: 80px; max-width: 80%; object-fit: contain; }
+        .field-group { margin-bottom: 12px; }
+        label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #94a3b8; }
+        select, input { width: 100%; padding: 10px; background-color: #1e293b; border: 1px solid #334155; border-radius: 8px; color: #fff; font-size: 14px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .switch-container { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; background: #1e293b; padding: 10px; border-radius: 8px; }
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; transition: .3s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background-color: #38bdf8; }
+        input:checked + .slider:before { transform: translateX(20px); }
+        .result-box { background: #1e293b; border: 2px solid #38bdf8; border-radius: 12px; padding: 15px; text-align: center; margin-top: 15px; }
+        .result-title { font-size: 11px; font-weight: bold; color: #38bdf8; letter-spacing: 1px; }
+        .result-price { font-size: 32px; font-weight: bold; margin: 5px 0; color: #fff; }
+        .result-details { font-size: 12px; color: #94a3b8; }
+        .btn-settings { width: 100%; margin-top: 15px; padding: 10px; background: #334155; border: none; border-radius: 8px; color: #fff; font-weight: bold; cursor: pointer; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; justify-content: center; align-items: center; padding: 15px; }
+        .modal-content { background: #0f172a; border-radius: 12px; padding: 20px; width: 100%; max-width: 400px; max-height: 80vh; overflow-y: auto; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="logo-container">
+        <img src="logo.png" alt="Logo" id="appLogo">
+    </div>
+
+    <div class="field-group">
+        <label>TIPO DE VEHÍCULO</label>
+        <select id="vehiculo" onchange="calcular()"></select>
+    </div>
+
+    <div class="grid-2">
+        <div class="field-group">
+            <label>TIPO DE SERVICIO</label>
+            <select id="servicio" onchange="calcular()">
+                <option value="Reparto">Reparto</option>
+                <option value="Recogida">Recogida</option>
+                <option value="Directo">Directo</option>
+            </select>
+        </div>
+        <div class="field-group">
+            <label>KM TOTALES</label>
+            <input type="number" id="km" value="120" oninput="calcular()">
+        </div>
+    </div>
+
+    <div class="grid-2">
+        <div class="field-group">
+            <label>HORA CARGA</label>
+            <input type="time" id="hInicio" value="10:30" onchange="calcular()">
+        </div>
+        <div class="field-group">
+            <label>HORA DESCARGA</label>
+            <input type="time" id="hFin" value="14:30" onchange="calcular()">
+        </div>
+    </div>
+
+    <div class="grid-2">
+        <div class="field-group">
+            <label>TOTAL HORAS</label>
+            <input type="text" id="totalHoras" value="4.00 hrs" disabled>
+        </div>
+        <div class="field-group">
+            <label>PARALIZACIÓN (HRS)</label>
+            <input type="number" id="paralizacion" value="0" oninput="calcular()">
+        </div>
+    </div>
+
+    <div class="switch-container">
+        <span>Plataforma (PTL)</span>
+        <label class="switch">
+            <input type="checkbox" id="ptl" onchange="calcular()">
+            <span class="slider"></span>
+        </label>
+    </div>
+
+    <div class="switch-container">
+        <span>Pernoctación (+60 €)</span>
+        <label class="switch">
+            <input type="checkbox" id="pernocta" onchange="calcular()">
+            <span class="slider"></span>
+        </label>
+    </div>
+
+    <div class="result-box">
+        <div class="result-title">FACTURACIÓN ESTIMADA</div>
+        <div class="result-price" id="precioFinal">0.00 €</div>
+        <div class="result-details" id="detalles">Tarifa Mín: - | Subtotal: -</div>
+    </div>
+
+    <button class="btn-settings" onclick="abrirAjustes()">⚙ Ajustes / Editar Tarifas</button>
+</div>
+
+<!-- Modal Ajustes -->
+<div class="modal" id="modalAjustes">
+    <div class="modal-content">
+        <h3 style="margin-bottom: 15px; text-align: center;">Ajustes de Tarifas</h3>
+        <div id="formAjustes"></div>
+        <button class="btn-settings" style="background:#16a34a;" onclick="guardarAjustes()">💾 Guardar Cambios</button>
+        <button class="btn-settings" style="background:#ef4444;" onclick="cerrarAjustes()">Cancelar</button>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
